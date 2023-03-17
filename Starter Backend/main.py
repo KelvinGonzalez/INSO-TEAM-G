@@ -367,9 +367,9 @@ def show_page():
         page_format = formatted_events
     elif page == "calendar":
         formatted_days = "\n".join(["\n".join([str(day) for day in week if day]) for week in page_data.get('month')])
-        page_format = f"{user.calendar.month_names[page_data.get('month_number')-1]}:\n\n" + formatted_days
+        page_format = f"{user.calendar.month_names[page_data.get('month_number')-1]}, {str(page_data.get('year'))}:\n\n" + formatted_days
     elif page == "schedule":
-        page_format = f"{user.calendar.month_names[page_data.get('month_number')-1]} {page_data.get('calendar_day').day_number}, {page_data.get('calendar_day').week_day}:\n\n" + "\n".join([f"{events[id].title}: {epoch_to_datetime(events[id].time)}" for id in page_data.get('calendar_day').event_ids])
+        page_format = f"{user.calendar.month_names[page_data.get('month_number')-1]} {page_data.get('calendar_day').day_number}, {str(page_data.get('year'))}, {page_data.get('calendar_day').week_day}:\n\n" + "\n".join([f"{events[id].title}: {epoch_to_datetime(events[id].time)}" for id in page_data.get('calendar_day').event_ids])
     elif page == "event":
         temp_event = page_data.get('event')
         if temp_event:
@@ -440,6 +440,8 @@ def parse_input(prompt):
                 goto("home")
             else:
                 send_alert("Could not sign up")
+        if prompt[0] == "login":
+            goto("login")
     elif page == "home":
         pass
     elif page == "create_event":
@@ -466,10 +468,22 @@ def parse_input(prompt):
             goto("event", {"event": events[list(events.keys())[int(prompt[1])]]})
     elif page == "calendar":
         if prompt[0] == "day":
-            goto("schedule", {"month": page_data["month"], "month_number": page_data["month_number"], "calendar_day": user.calendar.get_day_from_month(page_data["month"], int(prompt[1]))})
+            goto("schedule", {"month": page_data["month"], "month_number": page_data["month_number"], "year": page_data["year"], "calendar_day": user.calendar.get_day_from_month(page_data["month"], int(prompt[1]))})
+        if prompt[0] == "next":
+            if page_data["month_number"] == 12:
+                page_data["month_number"] = 0
+                page_data["year"] += 1
+            page_data["month_number"] += 1
+            page_data["month"] = user.calendar.generate_month(page_data["month_number"], page_data["year"])
+        if prompt[0] == "prev":
+            if page_data["month_number"] == 1:
+                page_data["month_number"] = 13
+                page_data["year"] -= 1
+            page_data["month_number"] -= 1
+            page_data["month"] = user.calendar.generate_month(page_data["month_number"], page_data["year"])
     elif page == "schedule":
         if prompt[0] == "month":
-            goto("calendar", {"month": page_data["month"], "month_number": page_data["month_number"]})
+            goto("calendar", {"month": page_data["month"], "month_number": page_data["month_number"], "year": page_data["year"]})
     elif page == "event":
         if prompt[0] == "subscribe":
             if user.add_event(page_data["event"].id):
@@ -593,18 +607,18 @@ def parse_input(prompt):
                 pass
             else:
                 send_alert("Password could not be modified")
+        if prompt[0] == "user":
+            goto("user", {"user": page_data["user"]})
     elif page == "notifications":
         if prompt[0] == "delete":
             if user.delete_notification(int(prompt[1])):
                 send_alert("Notification successfully deleted")
             else:
                 send_alert("Notification could not be deleted")
-        if prompt[0] == "view":
+        if prompt[0] == "update":
             goto("event_update", {"update": user.calendar.notifications[int(prompt[1])].get_event_update()})
     
-    if prompt[0] == "goto":
-        goto(prompt[1])
-    elif prompt[0] == "exit":
+    if prompt[0] == "exit":
         page_data["exit"] = True
     elif prompt[0] == "logout":
         email, password = user.email, user.password
@@ -616,7 +630,7 @@ def parse_input(prompt):
         goto("events")
     elif prompt[0] == "calendar":
         month = get_today_month()
-        goto("calendar", {"month": user.calendar.generate_month(month[0], month[1]), "month_number": month[0]})
+        goto("calendar", {"month": user.calendar.generate_month(month[0], month[1]), "month_number": month[0], "year": month[1]})
     elif prompt[0] == "profile":
         goto("user", {'user': user})
     elif prompt[0] == "notifications":
@@ -631,15 +645,14 @@ def run():
         try:
             show_page()
             parse_input(input("-"*50 + "\nEnter command: "))
-            os.system('cls')
             if page_data.get('exit'):
                 break
-            for alert in alert_queue:
-                print(alert)
-            alert_queue.clear()
         except:
-            os.system('cls')
-            print("Alert: Error has occurred")
+            send_alert("Error has occurred")
+        os.system('cls')
+        for alert in alert_queue:
+            print(alert)
+            alert_queue.clear()
     save()
 
 if __name__ == "__main__":
