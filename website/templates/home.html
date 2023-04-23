@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="container">
+    <br><h1>Welcome {{user.username}}</h1><br>
+    <h3>Subscribed Events:</h3>
+    {% if subscribed_events|length > 0 %}
+    <div id="eventCarousel" class="carousel carousel-dark slide" data-interval="false">
+    <div class="carousel-inner">
+      <div class="container">
+        {% for i in range(subscribed_events|length // 3 + (0 if subscribed_events|length % 3 == 0 else 1)) %}
+        <div class="carousel-item {{'active' if i == 0 else ''}}">
+          <div class="row" style="margin:16px">
+            {% for j in range(3) %}
+            {% if i*3+j < subscribed_events|length %}
+            <div class="col-md-4 h-100">
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title">{{subscribed_events[i*3+j].title}}</h5>
+                  <p class="card-text">{{subscribed_events[i*3+j].body}}</p>
+                  <p class="card-text">
+                    Hosted by: {{get_host(subscribed_events[i*3+j].id).username}}<br>
+                    Time: {{epoch_to_datetime(subscribed_events[i*3+j].time)}}<br>
+                    Location: {{subscribed_events[i*3+j].location}}<br>
+                    Price: ${{"{:.2f}".format(subscribed_events[i*3+j].price_fee)}}<br>
+                    Rating: {{subscribed_events[i*3+j].get_rating()}}/5.0 - {{ subscribed_events[i*3+j].ratings|length }} total ratings<br>
+                    Subscribed users: {{subscribed_events[i*3+j].subscribed_users|length}}<br>
+                    Posted on: {{epoch_to_datetime(subscribed_events[i*3+j].time_stamp)}}<br>
+                    Last updated on: {{epoch_to_datetime(subscribed_events[i*3+j].updates[-1].time_stamp if subscribed_events[i*3+j].updates|length > 0 else subscribed_events[i*3+j].time_stamp)}}</p>
+                  <a class="btn btn-secondary w-100" href="/event?id={{subscribed_events[i*3+j].id}}">View Event</a>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <a class="carousel-control-prev" href="#eventCarousel" role="button" data-slide="prev" style="width:5%">
+      <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1)"></span>
+    </a>
+    <a class="carousel-control-next" href="#eventCarousel" role="button" data-slide="next" style="width:5%">
+      <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1)"></span>
+    </a>
+    </div>
+    {% else %}
+    You are not subscribed to any events
+    {% endif %}
+    <div class="d-flex" style="margin-top:16px">
+      <h3>Created Events:&nbsp;</h3>
+      <button type="button" class="close" data-toggle="modal" data-target="#createEventModal" style="padding:0px">
+        <span aria-hidden="true">+</span>
+      </button>
+    </div>
+    {% if created_events|length > 0 %}
+    <div id="cEventCarousel" class="carousel carousel-dark slide" data-interval="false">
+    <div class="carousel-inner">
+      <div class="container">
+      {% for i in range(created_events|length // 3 + (0 if created_events|length % 3 == 0 else 1)) %}
+      <div class="carousel-item {{'active' if i == 0 else ''}}">
+        <div class="row" style="margin:16px">
+          {% for j in range(3) %}
+          {% if i*3+j < created_events|length %}
+          <div class="col-md-4 h-100">
+            <div class="card">
+              <div class="card-body">
+                <h5 class="card-title">{{created_events[i*3+j].title}}</h5>
+                <p class="card-text">{{created_events[i*3+j].body}}</p>
+                <p class="card-text">
+                  Hosted by: {{get_host(created_events[i*3+j].id).username}}<br>
+                  Time: {{epoch_to_datetime(created_events[i*3+j].time)}}<br>
+                  Location: {{created_events[i*3+j].location}}<br>
+                  Price: ${{"{:.2f}".format(created_events[i*3+j].price_fee)}}<br>
+                  Rating: {{created_events[i*3+j].get_rating()}}/5.0 - {{ created_events[i*3+j].ratings|length }} total ratings<br>
+                  Subscribed users: {{created_events[i*3+j].subscribed_users|length}}<br>
+                  Posted on: {{epoch_to_datetime(created_events[i*3+j].time_stamp)}}<br>
+                  Last updated on: {{epoch_to_datetime(created_events[i*3+j].updates[-1].time_stamp if created_events[i*3+j].updates|length > 0 else created_events[i*3+j].time_stamp)}}</p>
+                <a class="btn btn-secondary w-100" href="/event?id={{created_events[i*3+j].id}}">View Event</a>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    </div>
+    <a class="carousel-control-prev" href="#cEventCarousel" role="button" data-slide="prev" style="width:5%">
+      <span class="carousel-control-prev-icon" aria-hidden="true" style="filter: invert(1)"></span>
+    </a>
+    <a class="carousel-control-next" href="#cEventCarousel" role="button" data-slide="next" style="width:5%">
+      <span class="carousel-control-next-icon" aria-hidden="true" style="filter: invert(1)"></span>
+    </a>
+    </div>
+    {% else %}
+    You have not created any events
+    {% endif %}
+
+    
+  
+  <div class="modal fade" id="createEventModal" tabindex="-1" role="dialog" aria-labelledby="createEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="createEventModalLabel">Create Event</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form action="/event", method="POST">
+        <div class="modal-body">
+            <input type="hidden" name="c_event" value="True">
+            <div class="form-group">
+              <label for="title">Title</label>
+              <input type="text" class="form-control" name="title" placeholder="Enter title">
+            </div>
+            <div class="form-group">
+              <label for="body">Body</label>
+              <textarea class="form-control" name="body" rows="3" placeholder="Enter body"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="time">Time</label>
+              <input type="datetime-local" class="form-control" name="time" placeholder="Enter time">
+            </div>
+            <div class="form-group">
+              <label for="location">Location</label>
+              <input type="text" class="form-control" name="location" placeholder="Enter location">
+            </div>
+            <div class="form-group">
+              <label for="contact-info">Contact Info</label>
+              <input type="text" class="form-control" name="contact" placeholder="Enter contact info">
+            </div>
+            <div class="form-group">
+              <label for="price">Price</label>
+              <input type="number" class="form-control" name="price" placeholder="Enter price">
+            </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

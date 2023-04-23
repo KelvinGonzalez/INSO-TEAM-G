@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Schedule{% endblock %}
+{% block content %}
+<div class="container mt-3" style="margin-top:24px">
+    <h3>Events on {{ day.week_day }}, {{ months[day.month_number-1] }} {{ day.day_number }} of {{ day.year }}</h3>
+    <div class="row">
+        <div class="col-6">
+            <ul class="list-group mt-3">
+                {% for hour in range(12) %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ hour if hour != 0 else 12 }}:00AM - {{hour + 1}}:00{{"AM" if hour < 11 else "PM"}}
+                        <ul class="list-unstyled">
+                            {% for event in day.get_events_in_time_interval(hour*60, (hour+1)*60) %}
+                                <li><a href="/event?id={{ event.id }}" style="color:black">{{ event.title }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="col-6">
+            <ul class="list-group mt-3">
+                {% for hour in range(12) %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ hour if hour != 0 else 12 }}:00PM - {{hour + 1}}:00{{"PM" if hour < 11 else "AM"}}
+                        <ul class="list-unstyled">
+                            {% for event in day.get_events_in_time_interval((hour+12)*60, (hour+12+1)*60) %}
+                                <li><a href="/event?id={{ event.id }}" style="color:black">{{ event.title }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

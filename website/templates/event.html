@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Event{% endblock %}
+{% block content %}
+<div class="container">
+<!-- <div class="container mt-4">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">{{event.title}}</h3>
+      </div>
+      <div class="card-body">
+        <p class="card-text">{{event.body}}</p>
+        <p class="card-text">{{epoch_to_datetime(event.time)}}</p>
+        <p class="card-text">Location: {{event.location}}</p>
+        <p class="card-text">Contact Info: {{event.contact_info}}</p>
+        <p class="card-text">Price: ${{"{:.2f}".format(event.price_fee)}}</p>
+        <p class="card-text">Rating: {{event.get_rating()}}/5.0</p>
+      </div>
+    </div>
+  </div> -->
+      <!-- Event Details -->
+      <div class="d-flex text-center" style="margin-top:24px">
+        <h1>{{ event.title }}&nbsp;</h1>
+        {% if user.is_authenticated %}
+        {% if event.host_id == user.id %}
+        <button type="button" class="close" data-toggle="modal" data-target="#editEventModal">
+          <span aria-hidden="true">edit&nbsp;</span>
+        </button>
+        <button type="button" class="close" data-toggle="modal" data-target="#deleteEventModal">
+          <span aria-hidden="true">delete</span>
+        </button>
+        {% else %}
+        <form class="dismiss-form" action="/event" method="POST">
+          <input type="hidden" name="id" value="{{event.id}}">
+          <input type="hidden" name="subscribe" value="{{0 if event.id in user.calendar.event_ids else 1}}">
+          <button type="submit" class="close" style="height:100%">{{"unsubscribe" if event.id in user.calendar.event_ids else "subscribe"}}&nbsp;</button>
+        </form>
+        <button type="button" class="close" data-toggle="modal" data-target="#rateEventModal">
+          <span aria-hidden="true">rate</span>
+        </button>
+        {% endif %}
+        {% endif %}
+      </div>
+      <p class="lead">{{ event.body }}</p>
+      <ul class="list-unstyled">
+        <li><strong>Hosted by:</strong> {{ get_host(event.id).username }}</li>
+        <li><strong>Time:</strong> {{ epoch_to_datetime(event.time) }}</li>
+        <li><strong>Location:</strong> {{ event.location }}</li>
+        <li><strong>Contact Info:</strong> {{ event.contact_info }}</li>
+        <li><strong>Price:</strong> ${{ "{:.2f}".format(event.price_fee) }}</li>
+        <li><strong>Rating:</strong> {{ event.get_rating() }}/5.0 - {{ event.ratings|length }} total ratings</li>
+        <li><strong>Subscribed Users:</strong> {{ event.subscribed_users|length }}</li>
+        <li><strong>Posted on:</strong> {{ epoch_to_datetime(event.time_stamp) }}</li>
+        <li><strong>Last updated on:</strong> {{ epoch_to_datetime(event.updates[-1].time_stamp if event.updates|length > 0 else event.time_stamp) }}</li>
+      </ul>
+      
+      <!-- Event Updates -->
+      <div class="d-flex" style="margin-top:16px">
+        <strong>Updates:&nbsp;</strong>
+        {% if user.is_authenticated and event.host_id == user.id %}
+        <button type="button" class="close" data-toggle="modal" data-target="#updateModal">
+          <span aria-hidden="true">+</span>
+        </button>
+        {% endif %}
+      </div>
+
+      {% if updates|length > 0 %}
+      <div class="accordion" id="updatesAccordion">
+        {% for i in range(updates|length) %}
+        <div class="card">
+          <div class="card-header" data-toggle="collapse" data-target="#update{{i}}">
+            <h6 class="mb-0">{{updates[i].title}} &mdash; Posted on {{epoch_to_datetime(updates[i].time_stamp)}}</h6>
+          </div>
+          <div id="update{{i}}" class="collapse" data-parent="#updatesAccordion">
+            <div class="card-body">
+              <p>{{updates[i].body}}</p>
+              {% if event.host_id == user.id %}
+              <form class="dismiss-form" action="/event" method="POST">
+                <input type="hidden" name="d_update" value="True">
+                <input type="hidden" name="id" value="{{event.id}}">
+                <input type="hidden" name="index" value="{{i}}">
+                <button class="close" type="submit"><span aria-hidden="true">&times;</span></button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      There are no updates for this event
+      {% endif %}
+
+      {% if user.is_authenticated %}
+      <div class="modal fade" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="updateModalLabel">Create Update</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <form action="/event", method="POST">
+            <div class="modal-body">
+                <input type="hidden" name="c_update" value="True">
+                <input type="hidden" name="id" value="{{event.id}}">
+                <div class="form-group">
+                  <label for="title">Title</label>
+                  <input type="text" class="form-control" name="title" placeholder="Enter title">
+                </div>
+                <div class="form-group">
+                  <label for="body">Body</label>
+                  <textarea class="form-control" name="body" rows="3" placeholder="Enter body"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="editEventModal" tabindex="-1" role="dialog" aria-labelledby="editEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editEventModalLabel">Edit Event</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <form action="/event", method="POST">
+            <div class="modal-body">
+                <input type="hidden" name="e_event" value="True">
+                <input type="hidden" name="id" value="{{event.id}}">
+                <div class="form-group">
+                  <label for="title">Title</label>
+                  <input type="text" class="form-control" name="title" placeholder="{{event.title}}">
+                </div>
+                <div class="form-group">
+                  <label for="body">Body</label>
+                  <textarea class="form-control" name="body" rows="3" placeholder="{{event.body}}"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="time">Time</label>
+                  <input type="datetime-local" class="form-control" name="time" value="{{epoch_to_datetime_html(event.time)}}">
+                </div>
+                <div class="form-group">
+                  <label for="location">Location</label>
+                  <input type="text" class="form-control" name="location" placeholder="{{event.location}}">
+                </div>
+                <div class="form-group">
+                  <label for="contact-info">Contact Info</label>
+                  <input type="text" class="form-control" name="contact" placeholder="{{event.contact_info}}">
+                </div>
+                <div class="form-group">
+                  <label for="price">Price</label>
+                  <input type="number" class="form-control" name="price" placeholder="{{'{:.2f}'.format(event.price_fee)}}">
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Confirm</button>
+            </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="deleteEventModal" tabindex="-1" role="dialog" aria-labelledby="deleteEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="deleteEventModalLabel">Delete Event</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p>This event will be deleted forever!</p>
+            </div>
+            <form action="/event" method="POST">
+            <input type="hidden" name="d_event" value="True">
+            <input type="hidden" name="id" value="{{event.id}}">
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-danger">Delete</button>
+            </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="rateEventModal" tabindex="-1" role="dialog" aria-labelledby="rateEventModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="rateEventModalLabel">Rate Event</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <form action="/event", method="POST">
+            <div class="modal-body">
+                <input type="hidden" name="r_event" value="True">
+                <input type="hidden" name="id" value="{{event.id}}">
+                <div class="form-group">
+                  <label for="rating">Rating (1-5)</label>
+                  <input type="number" class="form-control" name="rating" placeholder="Enter rating">
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Submit</button>
+            </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+<div class="container">
+<div class="d-flex" style="margin-top:24px">
+    <h3 class="text-center mb-3">
+    <a href="/calendar?month={{month_num|int - 1 if month_num|int > 1 else 12}}&year={{year if month_num|int > 1 else year|int - 1}}" style="color:black">&lt;</a>
+    {{ month_name }}, {{ year }}
+    <a href="/calendar?month={{month_num|int + 1 if month_num|int < 12 else 1}}&year={{year if month_num|int < 12 else year|int + 1}}" style="color:black">&gt;</a>
+    </h3>
+</div>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+            <th>Saturday</th>
+            <th>Sunday</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in month %}
+            <tr>
+              {% for day in week %}
+                {% if day %}
+                  <td>
+                    <a href="/schedule?day={{day.day_number}}&month={{month_num}}&year={{year}}" style="color:black">
+                      {{ day.day_number }}<br>
+                      {% if day.event_ids %}
+                        ({{ day.event_ids|length }} events)
+                      {% endif %}
+                    </a>
+                  </td>
+                {% else %}
+                  <td></td>
+                {% endif %}
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+{% endblock %}
