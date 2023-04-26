@@ -2,40 +2,26 @@
 {% block title %}Event{% endblock %}
 {% block content %}
 <div class="container">
-<!-- <div class="container mt-4">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">{{event.title}}</h3>
-      </div>
-      <div class="card-body">
-        <p class="card-text">{{event.body}}</p>
-        <p class="card-text">{{epoch_to_datetime(event.time)}}</p>
-        <p class="card-text">Location: {{event.location}}</p>
-        <p class="card-text">Contact Info: {{event.contact_info}}</p>
-        <p class="card-text">Price: ${{"{:.2f}".format(event.price_fee)}}</p>
-        <p class="card-text">Rating: {{event.get_rating()}}/5.0</p>
-      </div>
-    </div>
-  </div> -->
       <!-- Event Details -->
       <div class="d-flex text-center" style="margin-top:24px">
         <h1>{{ event.title }}&nbsp;</h1>
         {% if user.is_authenticated %}
-        {% if event.host_id == user.id %}
+        {% if event.host_id == user.id or user.moderator %}
         <button type="button" class="close" data-toggle="modal" data-target="#editEventModal">
           <span aria-hidden="true">edit&nbsp;</span>
         </button>
         <button type="button" class="close" data-toggle="modal" data-target="#deleteEventModal">
-          <span aria-hidden="true">delete</span>
+          <span aria-hidden="true">delete&nbsp;</span>
         </button>
-        {% else %}
+        {% endif %}
+        {% if event.host_id != user.id %}
         <form class="dismiss-form" action="/event" method="POST">
           <input type="hidden" name="id" value="{{event.id}}">
           <input type="hidden" name="subscribe" value="{{0 if event.id in user.calendar.event_ids else 1}}">
           <button type="submit" class="close" style="height:100%">{{"unsubscribe" if event.id in user.calendar.event_ids else "subscribe"}}&nbsp;</button>
         </form>
         <button type="button" class="close" data-toggle="modal" data-target="#rateEventModal">
-          <span aria-hidden="true">rate</span>
+          <span aria-hidden="true">rate&nbsp;</span>
         </button>
         {% endif %}
         {% endif %}
@@ -56,7 +42,7 @@
       <!-- Event Updates -->
       <div class="d-flex" style="margin-top:16px">
         <strong>Updates:&nbsp;</strong>
-        {% if user.is_authenticated and event.host_id == user.id %}
+        {% if user.is_authenticated and (event.host_id == user.id or user.moderator) %}
         <button type="button" class="close" data-toggle="modal" data-target="#updateModal">
           <span aria-hidden="true">+</span>
         </button>
@@ -67,13 +53,13 @@
       <div class="accordion" id="updatesAccordion">
         {% for i in range(updates|length) %}
         <div class="card">
-          <div class="card-header" data-toggle="collapse" data-target="#update{{i}}">
+          <div class="card-header" data-toggle="collapse" data-target="#update{{i}}" style="cursor:pointer">
             <h6 class="mb-0">{{updates[i].title}} &mdash; Posted on {{epoch_to_datetime(updates[i].time_stamp)}}</h6>
           </div>
           <div id="update{{i}}" class="collapse" data-parent="#updatesAccordion">
             <div class="card-body">
               <p>{{updates[i].body}}</p>
-              {% if event.host_id == user.id %}
+              {% if user.is_authenticated and (event.host_id == user.id or user.moderator) %}
               <form class="dismiss-form" action="/event" method="POST">
                 <input type="hidden" name="d_update" value="True">
                 <input type="hidden" name="id" value="{{event.id}}">
@@ -137,11 +123,11 @@
                 <input type="hidden" name="id" value="{{event.id}}">
                 <div class="form-group">
                   <label for="title">Title</label>
-                  <input type="text" class="form-control" name="title" placeholder="{{event.title}}">
+                  <input type="text" class="form-control" name="title" value="{{event.title}}">
                 </div>
                 <div class="form-group">
                   <label for="body">Body</label>
-                  <textarea class="form-control" name="body" rows="3" placeholder="{{event.body}}"></textarea>
+                  <textarea class="form-control" name="body" rows="3" maxlength="500">{{event.body}}</textarea>
                 </div>
                 <div class="form-group">
                   <label for="time">Time</label>
@@ -149,15 +135,15 @@
                 </div>
                 <div class="form-group">
                   <label for="location">Location</label>
-                  <input type="text" class="form-control" name="location" placeholder="{{event.location}}">
+                  <input type="text" class="form-control" name="location" value="{{event.location}}">
                 </div>
                 <div class="form-group">
                   <label for="contact-info">Contact Info</label>
-                  <input type="text" class="form-control" name="contact" placeholder="{{event.contact_info}}">
+                  <input type="text" class="form-control" name="contact" value="{{event.contact_info}}">
                 </div>
                 <div class="form-group">
                   <label for="price">Price</label>
-                  <input type="number" class="form-control" name="price" placeholder="{{'{:.2f}'.format(event.price_fee)}}">
+                  <input type="number" class="form-control" name="price" value="{{'{:.2f}'.format(event.price_fee)}}">
                 </div>
             </div>
             <div class="modal-footer">

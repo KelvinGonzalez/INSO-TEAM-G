@@ -97,7 +97,7 @@ class Calendar:
         events = load("events")
         result = []
         for event_id in self.event_ids:
-            event_date = datetime.date.fromtimestamp(events[event_id].time)
+            event_date = datetime.datetime.utcfromtimestamp(events[event_id].time) - datetime.timedelta(hours=4) # AST Timezone
             if event_date.month == month and event_date.day == day and event_date.year == year:
                 result.append(event_id)
         return sorted(result, key=self.sorting_key)
@@ -109,10 +109,10 @@ class Calendar:
         if month == None or year == None:
             #raise Exception("1 missing argument")
             return None
-        if str(month).isdigit() == False or month > 12 or month < 1:
+        if not str(month).isnumeric() or month > 12 or month < 1:
             #raise Exception("Invalid month")
             return None
-        if str(year).isdigit() == False or (len(str(year)) < 4) == True:
+        if not str(year).isnumeric() or len(str(year)) < 4 or len(str(year)) > 4:
             #raise Exception("Invalid year")
             return None
                             
@@ -156,9 +156,8 @@ class User(UserMixin):
     def create_event(self, title, body, time_param, location, contact_info, price_fee):
         events = load("events")
         users = load("users")
-        if not title or not body or not time_param or not location or not contact_info or not price_fee and price_fee != 0:
+        if not title or not body or (not time_param and time_param != 0) or time_param < 0 or not location or not contact_info or (not price_fee and price_fee != 0) or price_fee < 0:
             return None
-        # Add to DB
         id = list(events.keys())[-1] + 1 if len(events) > 0 else 0
         events[id] = Event(id, title, body, time_param, location, contact_info, price_fee, time_stamp=time.time(), host_id=self.id)
         self.created_events.append(id)
@@ -200,9 +199,8 @@ class User(UserMixin):
             events[event_id].delete_update(0)
             events = load("events")
         users = load("users")
-        self.created_events.remove(event_id)
+        users[events[event_id].host_id].created_events.remove(event_id)
         events.pop(event_id)
-        users[self.id] = self
         save("events", events)
         save("users", users)
         return True
@@ -401,6 +399,7 @@ def key_event_date(e):
 
 def search_event(query, parameters):
     events = load("events")
+    users = load("users")
     if not query or query.strip() == "":
         result = list(events.values())
     else:
@@ -409,7 +408,7 @@ def search_event(query, parameters):
         for event in events.values():
             valid = True
             for p in query:
-                if p.lower() not in event.title.lower() and p.lower() not in event.body.lower():
+                if p.lower() not in event.title.lower() and p.lower() not in event.body.lower() and p.lower() not in users[event.host_id].username.lower() and p.lower() not in event.location.lower():
                     valid = False
                     break
             if valid:
@@ -451,17 +450,9 @@ def search_event(query, parameters):
         if min_rating <= event.get_rating() <= max_rating:
             result.append(event)
 
-    if parameters.get("host"):
-        users = load("users")
-        temp = list(result)
-        result = []
-        for event in temp:
-            if users[event.host_id].username == parameters.get("host"):
-                result.append(event)
-
-    if parameters and (parameters.get("sort") or parameters.get("sort") == 0):
+    if parameters and (parameters.get("sort") or parameters.get("sort") == 0) and 0 <= parameters.get("sort") < 3:
         return sorted(result, key=[key_popularity, key_recently_updated, key_event_date][parameters["sort"]])
-    return result
+    return sorted(result, key=key_event_date)
 
 def search_user(query):
     pass
@@ -504,21 +495,33 @@ def generate_recommendations(user_id):
     pass
 
 def datetime_to_epoch(datetime_string):
-    return int((datetime.datetime.strptime(datetime_string, '%b %d, %Y, %I:%M%p') + datetime.timedelta(hours=4)).replace(tzinfo=datetime.timezone.utc).timestamp())
+    try:
+        return int((datetime.datetime.strptime(datetime_string, '%b %d, %Y, %I:%M%p') + datetime.timedelta(hours=4)).replace(tzinfo=datetime.timezone.utc).timestamp())
+    except:
+        return None
 
 def datetime_to_epoch_html(datetime_string):
-    datetime_string = datetime_string.split("T")
-    date = datetime_string[0].split("-")
-    time = datetime_string[1].split(":")
-    return int((datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1])) + datetime.timedelta(hours=4)).replace(tzinfo=datetime.timezone.utc).timestamp())
+    try:
+        datetime_string = datetime_string.split("T")
+        date = datetime_string[0].split("-")
+        time = datetime_string[1].split(":")
+        return int((datetime.datetime(int(date[0]), int(date[1]), int(date[2]), int(time[0]), int(time[1])) + datetime.timedelta(hours=4)).replace(tzinfo=datetime.timezone.utc).timestamp())
+    except:
+        return None
 
 def epoch_to_datetime(epoch):
-    date_time = datetime.datetime.utcfromtimestamp(epoch) - datetime.timedelta(hours=4) # AST Timezone
-    return date_time.strftime('%b %d, %Y, %I:%M%p')
+    try:
+        date_time = datetime.datetime.utcfromtimestamp(epoch) - datetime.timedelta(hours=4) # AST Timezone
+        return date_time.strftime('%b %d, %Y, %I:%M%p')
+    except:
+        return None
 
 def epoch_to_datetime_html(epoch):
-    date_time = datetime.datetime.utcfromtimestamp(epoch) - datetime.timedelta(hours=4)
-    return f"{str(date_time.year).zfill(4)}-{str(date_time.month).zfill(2)}-{str(date_time.day).zfill(2)}T{str(date_time.hour).zfill(2)}:{str(date_time.minute).zfill(2)}"
+    try:
+        date_time = datetime.datetime.utcfromtimestamp(epoch) - datetime.timedelta(hours=4)
+        return f"{str(date_time.year).zfill(4)}-{str(date_time.month).zfill(2)}-{str(date_time.day).zfill(2)}T{str(date_time.hour).zfill(2)}:{str(date_time.minute).zfill(2)}"
+    except:
+        return None
 
 def get_today_month():
     date_time = datetime.datetime.fromtimestamp(time.time())

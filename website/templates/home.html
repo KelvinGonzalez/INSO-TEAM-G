@@ -2,7 +2,7 @@
 {% block title %}Home{% endblock %}
 {% block content %}
 <div class="container">
-    <br><h1>Welcome {{user.username}}</h1><br>
+    <br><h1>Welcome, {{user.username}}</h1><br>
     <h3>Subscribed Events:</h3>
     {% if subscribed_events|length > 0 %}
     <div id="eventCarousel" class="carousel carousel-dark slide" data-interval="false">
@@ -15,19 +15,22 @@
             {% if i*3+j < subscribed_events|length %}
             <div class="col-md-4 h-100">
               <div class="card">
-                <div class="card-body">
+                <div class="card-body" style="height:450px; display:flex; flex-direction:column">
                   <h5 class="card-title">{{subscribed_events[i*3+j].title}}</h5>
-                  <p class="card-text">{{subscribed_events[i*3+j].body}}</p>
-                  <p class="card-text">
-                    Hosted by: {{get_host(subscribed_events[i*3+j].id).username}}<br>
-                    Time: {{epoch_to_datetime(subscribed_events[i*3+j].time)}}<br>
-                    Location: {{subscribed_events[i*3+j].location}}<br>
-                    Price: ${{"{:.2f}".format(subscribed_events[i*3+j].price_fee)}}<br>
-                    Rating: {{subscribed_events[i*3+j].get_rating()}}/5.0 - {{ subscribed_events[i*3+j].ratings|length }} total ratings<br>
-                    Subscribed users: {{subscribed_events[i*3+j].subscribed_users|length}}<br>
-                    Posted on: {{epoch_to_datetime(subscribed_events[i*3+j].time_stamp)}}<br>
-                    Last updated on: {{epoch_to_datetime(subscribed_events[i*3+j].updates[-1].time_stamp if subscribed_events[i*3+j].updates|length > 0 else subscribed_events[i*3+j].time_stamp)}}</p>
-                  <a class="btn btn-secondary w-100" href="/event?id={{subscribed_events[i*3+j].id}}">View Event</a>
+                  <div class="container-fluid" style="overflow-y:auto; flex-grow:1">
+                    <p class="card-text">{{subscribed_events[i*3+j].body}}</p>
+                    <p class="card-text">
+                      Hosted by: {{get_host(subscribed_events[i*3+j].id).username}}<br>
+                      Time: {{epoch_to_datetime(subscribed_events[i*3+j].time)}}<br>
+                      Location: {{subscribed_events[i*3+j].location}}<br>
+                      Price: ${{"{:.2f}".format(subscribed_events[i*3+j].price_fee)}}<br>
+                      Rating: {{subscribed_events[i*3+j].get_rating()}}/5.0 - {{ subscribed_events[i*3+j].ratings|length }} total ratings<br>
+                      Subscribed users: {{subscribed_events[i*3+j].subscribed_users|length}}<br>
+                      Posted on: {{epoch_to_datetime(subscribed_events[i*3+j].time_stamp)}}<br>
+                      Last updated on: {{epoch_to_datetime(subscribed_events[i*3+j].updates[-1].time_stamp if subscribed_events[i*3+j].updates|length > 0 else subscribed_events[i*3+j].time_stamp)}}</p>
+                    </div>
+                    <br>
+                    <a class="btn btn-secondary w-100" href="/event?id={{subscribed_events[i*3+j].id}}">View Event</a>
                 </div>
               </div>
             </div>
@@ -65,18 +68,21 @@
           {% if i*3+j < created_events|length %}
           <div class="col-md-4 h-100">
             <div class="card">
-              <div class="card-body">
+              <div class="card-body" style="height:450px; display:flex; flex-direction:column">
                 <h5 class="card-title">{{created_events[i*3+j].title}}</h5>
-                <p class="card-text">{{created_events[i*3+j].body}}</p>
-                <p class="card-text">
-                  Hosted by: {{get_host(created_events[i*3+j].id).username}}<br>
-                  Time: {{epoch_to_datetime(created_events[i*3+j].time)}}<br>
-                  Location: {{created_events[i*3+j].location}}<br>
-                  Price: ${{"{:.2f}".format(created_events[i*3+j].price_fee)}}<br>
-                  Rating: {{created_events[i*3+j].get_rating()}}/5.0 - {{ created_events[i*3+j].ratings|length }} total ratings<br>
-                  Subscribed users: {{created_events[i*3+j].subscribed_users|length}}<br>
-                  Posted on: {{epoch_to_datetime(created_events[i*3+j].time_stamp)}}<br>
+                <div class="container-fluid" style="overflow-y:auto; flex-grow:1">
+                  <p class="card-text">{{created_events[i*3+j].body}}</p>
+                  <p class="card-text">
+                    Hosted by: {{get_host(created_events[i*3+j].id).username}}<br>
+                    Time: {{epoch_to_datetime(created_events[i*3+j].time)}}<br>
+                    Location: {{created_events[i*3+j].location}}<br>
+                    Price: ${{"{:.2f}".format(created_events[i*3+j].price_fee)}}<br>
+                    Rating: {{created_events[i*3+j].get_rating()}}/5.0 - {{ created_events[i*3+j].ratings|length }} total ratings<br>
+                    Subscribed users: {{created_events[i*3+j].subscribed_users|length}}<br>
+                    Posted on: {{epoch_to_datetime(created_events[i*3+j].time_stamp)}}<br>
                   Last updated on: {{epoch_to_datetime(created_events[i*3+j].updates[-1].time_stamp if created_events[i*3+j].updates|length > 0 else created_events[i*3+j].time_stamp)}}</p>
+                </div>
+                <br>
                 <a class="btn btn-secondary w-100" href="/event?id={{created_events[i*3+j].id}}">View Event</a>
               </div>
             </div>
@@ -119,7 +125,7 @@
             </div>
             <div class="form-group">
               <label for="body">Body</label>
-              <textarea class="form-control" name="body" rows="3" placeholder="Enter body"></textarea>
+              <textarea class="form-control" name="body" rows="3" placeholder="Enter body" maxlength="500"></textarea>
             </div>
             <div class="form-group">
               <label for="time">Time</label>

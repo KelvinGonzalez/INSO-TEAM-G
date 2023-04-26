@@ -33,7 +33,6 @@ def sign_up():
     if user:
       login_user(user, remember=True)
       return redirect(url_for('views.home'))
-    print("Invalid sign up")
 
   return render_template("signup.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()))
 
@@ -41,55 +40,52 @@ def sign_up():
 @login_required
 def logout():
   logout_user()
-  return redirect(url_for('views.events'))
+  return redirect(url_for('views.home'))
 
 @views.route('/event', methods=["GET", "POST"])
 def event():
   events = backend.load("events")
   event = None
   if request.method == "GET":
-    event = events.get(int(request.args["id"]))
+    event = events.get(int(request.args["id"])) if request.args.get("id") and request.args.get("id").isnumeric() else None
   elif request.method == "POST":
     if request.form.get("c_event"):
-      users = backend.load("users")
-      event = current_user.create_event(request.form.get("title"), request.form.get("body"), backend.datetime_to_epoch_html(request.form.get("time")) if request.form.get("time") else None, request.form.get("location"), request.form.get("contact"), float(request.form.get("price")))
+      event = current_user.create_event(request.form.get("title"), request.form.get("body"), backend.datetime_to_epoch_html(request.form.get("time")) if request.form.get("time") else None, request.form.get("location"), request.form.get("contact"), float(request.form.get("price")) if request.form.get("price") or request.form.get("price") == 0 else None)
       if event:
         return redirect(url_for("views.event")+"?id="+str(event.id))
       
     elif request.form.get("e_event"):
-      event = events.get(int(request.form["id"]))
-      if current_user.edit_event(int(request.form["id"]), request.form.get("title"), request.form.get("body"), backend.datetime_to_epoch_html(request.form.get("time")) if request.form.get("time") else None, request.form.get("location"), request.form.get("contact"), float(request.form.get("price")) if request.form.get("price") else None):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and current_user.edit_event(int(request.form["id"]), request.form.get("title"), request.form.get("body"), backend.datetime_to_epoch_html(request.form.get("time")) if request.form.get("time") else None, request.form.get("location"), request.form.get("contact"), float(request.form.get("price")) if request.form.get("price") or request.form.get("price") == 0 else None):
         return redirect(url_for("views.event")+"?id="+str(event.id))
       
     elif request.form.get("d_event"):
-      users = backend.load("users")
-      event = events.get(int(request.form["id"]))
-      if current_user.delete_event(event.id):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and current_user.delete_event(event.id):
         return redirect(url_for("views.home"))
       
     elif request.form.get("r_event"):
-      event = events.get(int(request.form["id"]))
-      if current_user.rate_event(event.id, int(request.form.get("rating"))):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and request.form.get("rating") and request.form.get("rating").isnumeric() and current_user.rate_event(event.id, int(request.form.get("rating"))):
         return redirect(url_for("views.event")+"?id="+str(event.id))
 
     elif request.form.get("c_update"):
-      event = events.get(int(request.form["id"]))
-      if event.create_update(request.form.get("title"), request.form.get("body")):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and event.create_update(request.form.get("title"), request.form.get("body")):
         return redirect(url_for("views.event")+"?id="+request.form["id"])
       
     elif request.form.get("d_update"):
-      event = events.get(int(request.form["id"]))
-      if event.delete_update(int(request.form["index"])):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and request.form.get("index") and request.form.get("index").isnumeric() and event.delete_update(int(request.form["index"])):
         return redirect(url_for("views.event")+"?id="+request.form["id"])
       
     elif request.form.get("subscribe"):
-      event = events.get(int(request.form["id"]))
-      users = backend.load("users")
-      if request.form.get("subscribe") == "1" and current_user.add_event(event.id) or request.form.get("subscribe") == "0" and current_user.remove_event(event.id):
+      event = events.get(int(request.form["id"])) if request.form.get("id") and request.form.get("id").isnumeric() else None
+      if event and request.form.get("subscribe") == "1" and current_user.add_event(event.id) or request.form.get("subscribe") == "0" and current_user.remove_event(event.id):
         return redirect(url_for("views.event")+"?id="+request.form["id"])
       
   if not event:
-    return redirect(url_for("views.page_not_found"))
+    return render_template("404.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()))
   
   return render_template("event.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()), event=event, updates=event.updates, epoch_to_datetime=backend.epoch_to_datetime, epoch_to_datetime_html=backend.epoch_to_datetime_html, get_host=backend.get_host)
 
@@ -99,22 +95,26 @@ def events():
   if request.method == "GET":
     query = request.args.get("query")
     parameters = {}
-    if request.args.get("sort"):
+    if request.args.get("sort") and request.args.get("sort").isnumeric():
       parameters["sort"] = int(request.args.get("sort"))
     if request.args.get("min-price"):
-      parameters["min-price"] = float(request.args.get("min-price"))
+      try:
+        parameters["min-price"] = float(request.args.get("min-price"))
+      except:
+        pass
     if request.args.get("max-price"):
-      parameters["max-price"] = float(request.args.get("max-price"))
+      try:
+        parameters["max-price"] = float(request.args.get("max-price"))
+      except:
+        pass
     if request.args.get("min-time"):
       parameters["min-time"] = backend.datetime_to_epoch_html(request.args.get("min-time"))
     if request.args.get("max-time"):
       parameters["max-time"] = backend.datetime_to_epoch_html(request.args.get("max-time"))
-    if request.args.get("min-rating"):
+    if request.args.get("min-rating") and request.args.get("min-rating").isnumeric():
       parameters["min-rating"] = int(request.args.get("min-rating"))
-    if request.args.get("max-rating"):
+    if request.args.get("max-rating") and request.args.get("max-rating").isnumeric():
       parameters["max-rating"] = int(request.args.get("max-rating"))
-    if request.args.get("host"):
-      parameters["host"] = request.args.get("host")
 
     events = backend.search_event(query, parameters)
   return render_template("events.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()), events=events, epoch_to_datetime=backend.epoch_to_datetime, get_host=backend.get_host)
@@ -129,24 +129,28 @@ def calendar():
       now = datetime.datetime.now()
       return redirect(f"{url_for('views.calendar')}?month={now.month}&year={now.year}")
     
-    month = current_user.calendar.generate_month(int(request.args.get("month")), int(request.args.get("year")))
-    month_name = backend.Calendar.month_names[int(request.args.get("month"))-1]
+    if request.args.get("month") and request.args.get("month").isnumeric() and request.args.get("year") and request.args.get("year").isnumeric():
+      month = current_user.calendar.generate_month(int(request.args.get("month")), int(request.args.get("year")))
+      if month:
+        month_name = backend.Calendar.month_names[int(request.args.get("month"))-1]
 
   if not month:
-    return redirect(url_for("views.page_not_found"))
+    return render_template("404.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()))
 
   return render_template("calendar.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()), month=month, month_name=month_name, month_num=request.args.get("month"), year=request.args.get("year"))
 
 @views.route('/schedule', methods=["GET"])
 @login_required
 def schedule():
+  day = None
+
   if request.method == "GET":
-    day = current_user.calendar.get_day_from_month(current_user.calendar.generate_month(int(request.args.get("month")), int(request.args.get("year"))), int(request.args.get("day")))
-    if not day:
-      return redirect(url_for("views.page_not_found"))
-    
-    return render_template("schedule.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()), day=day, months=backend.Calendar.month_names)
+    if request.args.get("month") and request.args.get("month").isnumeric() and request.args.get("year") and request.args.get("year").isnumeric() and request.args.get("day") and request.args.get("day").isnumeric():
+      month = current_user.calendar.generate_month(int(request.args.get("month")), int(request.args.get("year")))
+      if month:
+        day = current_user.calendar.get_day_from_month(month, int(request.args.get("day")))
   
-@views.route('/404', methods=["GET"])
-def page_not_found():
-  return render_template("404.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()))
+  if not day:
+    return render_template("404.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()))
+    
+  return render_template("schedule.html", user=current_user, time_now=backend.epoch_to_datetime_html(time.time()), day=day, months=backend.Calendar.month_names)
